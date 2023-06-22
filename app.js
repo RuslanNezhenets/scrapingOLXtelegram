@@ -12,15 +12,19 @@ const sleep = (milliseconds) => {
     return new Promise(resolve => setTimeout(resolve, milliseconds))
 }
 
-function escapeJson(jsonData) {
+function escapeString(stringToEscape) {
     const symbols = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
     const ourRegex = new RegExp('([' + symbols.map(s => '\\' + s).join('|') + '])', 'g');
 
+    return stringToEscape.replace(ourRegex, '\\$1')
+}
+
+function escapeJson(jsonData) {
     for (let key in jsonData) {
         for (let ad of jsonData[key]) {
-            ad.name = ad.name.replace(ourRegex, '\\$1')
+            ad.name = escapeString(ad.name)
             for (let key in ad.seller) {
-                ad.seller[key] = ad.seller[key].replace(ourRegex, '\\$1')
+                ad.seller[key] = escapeString(ad.seller[key])
             }
         }
     }
@@ -31,11 +35,11 @@ function beautify(jsonMessage) {
 
     let messages = []
     for (let key in jsonMessage) {
-        let stringOutput = `*${key}*:`
+        let stringOutput = `*${escapeString(key)}*:`
         for (let ad of jsonMessage[key]) {
             stringOutput += `\n[${ad.name}](${ad.src}): `
             stringOutput += (`${ad.seller.author} на OLX з ${ad.seller.date} ` +
-            `з рейтингом \"${ad.seller.rating}\" та ${ad.seller.deliveries} успішних доставок\\.`)
+                `з рейтингом \"${ad.seller.rating}\" та ${ad.seller.deliveries} успішних доставок\\.`)
         }
         messages.push(stringOutput)
     }
@@ -79,5 +83,10 @@ getFromOLX().then(async data => {
     const formattedData = JSON.stringify(data, null, 2)
     fs.writeFileSync(`history.json`, formattedData)
 
-    await sendMessageByToken(CHAT, result)
+    try {
+        await sendMessageByToken(CHAT, result)
+    }
+    catch (e) {
+        fs.writeFileSync('text.txt', e)
+    }
 })
