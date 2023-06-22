@@ -144,10 +144,12 @@ async function login(driver) {
             await driver.manage().addCookie(cookie)
         }
 
+        await driver.get(URL)
         cookiesValid = await checkCookiesValidity(driver)
     }
 
     if(!cookiesExist || !cookiesValid) {
+        console.log("Куки отсутсвуют или не в порядке, пытаюсь сам войти в аккаунт")
         const profile = await driver.findElement(By.xpath("//*[@id=\"my-account-link\"]/div"))
         await profile.click()
 
@@ -175,7 +177,11 @@ async function login(driver) {
 
         const currentCookies = await driver.manage().getCookies()
         fs.writeFileSync('cookies.json', JSON.stringify(currentCookies))
+        console.log("Обновил куки")
+    } else {
+        console.log("Куки в порядке")
     }
+    console.log("Зашёл в аккаунт")
 }
 
 async function FindElementSafe(driver, locator, time = 0) {
