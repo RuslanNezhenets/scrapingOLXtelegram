@@ -136,7 +136,18 @@ async function WebScrapingLocalTest() {
 
 async function login(driver) {
     const cookiesExist = fs.existsSync('cookies.json')
-    if (!cookiesExist) {
+    let cookiesValid = false
+
+    if (cookiesExist) {
+        const cookies = JSON.parse(fs.readFileSync('cookies.json', 'utf8'))
+        for (const cookie of cookies) {
+            await driver.manage().addCookie(cookie)
+        }
+
+        cookiesValid = await checkCookiesValidity(driver)
+    }
+
+    if(!cookiesExist || !cookiesValid) {
         const profile = await driver.findElement(By.xpath("//*[@id=\"my-account-link\"]/div"))
         await profile.click()
 
@@ -164,11 +175,6 @@ async function login(driver) {
 
         const currentCookies = await driver.manage().getCookies()
         fs.writeFileSync('cookies.json', JSON.stringify(currentCookies))
-    } else {
-        const cookies = JSON.parse(fs.readFileSync('cookies.json', 'utf8'))
-        for (const cookie of cookies) {
-            await driver.manage().addCookie(cookie)
-        }
     }
 }
 
@@ -180,6 +186,15 @@ async function FindElementSafe(driver, locator, time = 0) {
             return await driver.findElement(locator)
     } catch (error) {
         return null
+    }
+}
+
+async function checkCookiesValidity(driver) {
+    try {
+        const profileLink = await FindElementSafe(driver, By.css("#userLoginBox"), 5000)
+        return profileLink !== null
+    } catch (error) {
+        return false
     }
 }
 
